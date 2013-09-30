@@ -34,13 +34,13 @@
 		<system>hudson</system>
 		<url>https://dev.apaxo.de:8181/hudson</url>
 	</ciManagement>
-    <distributionManagement>
-      <snapshotRepository>
-        <id>apaxo-snapshots</id>
-        <url>http://dev.apaxo.de:8080/nexus/content/repositories/apaxo-snapshots</url>
-        <uniqueVersion>false</uniqueVersion>
-      </snapshotRepository>
-    </distributionManagement>
+	<distributionManagement>
+		<snapshotRepository>
+			<id>apaxo-snapshots</id>
+			<url>http://dev.apaxo.de:8080/nexus/content/repositories/apaxo-snapshots</url>
+			<uniqueVersion>false</uniqueVersion>
+		</snapshotRepository>
+	</distributionManagement>
 	<build>
 		<plugins>
 			<plugin>
