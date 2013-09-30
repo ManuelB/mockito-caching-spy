@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="mockito-caching-spy Maven Site">
+    <body>
+        <links>
+            <item name="Apaxo Website" href="http://www.apaxo.de/" />
+        </links>
+        <menu name="mockito-caching-spy">
+            <item name="Introduction" href="index.html"/>
+        </menu>
+        <menu ref="reports"/>
+    </body>
+</project>
