@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Arrays;
@@ -106,9 +107,9 @@ public class CachingSpy implements Answer<Object> {
     public static <T> T cachingSpy(T object, Method[] methodsToCache) {
         MockingDetails mockingDetails = Mockito.mockingDetails(object);
         if (mockingDetails.isMock() || mockingDetails.isSpy()) {
-            throw new IllegalArgumentException(
-                    "The object that you supplied "+object+" is already a mock."+
-            " Please create a new one.");
+            throw new IllegalArgumentException("The object that you supplied "
+                    + object + " is already a mock."
+                    + " Please create a new one.");
         }
         @SuppressWarnings("unchecked")
         Class<T> clazz = (Class<T>) object.getClass();
@@ -120,17 +121,20 @@ public class CachingSpy implements Answer<Object> {
                 .defaultAnswer(CACHING_SPY_ANSWERS));
         // go through all methods
         for (Method method : methodsToCache) {
-            Map<Method, Boolean> shouldMethodBeCached = shouldClassMethodBeCached
-                    .get(spiedObject);
-            if (shouldMethodBeCached == null) {
-                shouldMethodBeCached = new HashMap<Method, Boolean>();
-                shouldClassMethodBeCached
-                        .put(spiedObject, shouldMethodBeCached);
+            // only spy public methods
+            if (Modifier.isPublic(method.getModifiers())) {
+                Map<Method, Boolean> shouldMethodBeCached = shouldClassMethodBeCached
+                        .get(spiedObject);
+                if (shouldMethodBeCached == null) {
+                    shouldMethodBeCached = new HashMap<Method, Boolean>();
+                    shouldClassMethodBeCached.put(spiedObject,
+                            shouldMethodBeCached);
+                }
+                log.fine("Intercepting " + method.getName() + " on "
+                        + clazz.getName() + " instance: " + spiedObject);
+                // save that the method should be cached
+                shouldMethodBeCached.put(method, true);
             }
-            log.fine("Intercepting " + method.getName() + " on "
-                    + clazz.getName() + " instance: " + spiedObject);
-            // save that the method should be cached
-            shouldMethodBeCached.put(method, true);
         }
 
         return spiedObject;
