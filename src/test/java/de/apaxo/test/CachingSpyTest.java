@@ -9,6 +9,8 @@ import java.util.logging.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
+import de.apaxo.test.CachingSpy.FileNameConstructor;
+
 import static de.apaxo.test.CachingSpy.cachingSpy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -23,7 +25,7 @@ import static org.junit.Assert.fail;
 public class CachingSpyTest {
 
     private static final Logger log = Logger.getLogger(CachingSpyTest.class
-            .getName());
+                                            .getName());
 
     @Before
     public void configureLogging() {
@@ -99,8 +101,24 @@ public class CachingSpyTest {
     }
 
     @Test
-    public void testAnswer() {
-        // fail("Not yet implemented");
+    public void testFileNaming() throws NoSuchMethodException, SecurityException {
+        TestObject testObject = new TestObject();
+        CachingSpy.addFileNameConstructor(testObject.getClass().getMethod("fileNameAsParameter", new Class<?>[] {String.class}), new FileNameConstructor() {
+            
+            @Override
+            public String generateFileName(Object[] arguments) {
+                // directly return the first parameter as string
+                return arguments[0] == null ? "null" : arguments[0].toString();
+            }
+        });
+        // do not spy on any methods
+        testObject = cachingSpy(testObject);
+        assertEquals("filename-1", testObject.fileNameAsParameter("filename-1"));
+        assertNotNull(getClass().getClassLoader().getResource(
+                "de.apaxo.test.TestObject-fileNameAsParameter-filename-1.dat"));
+        assertEquals("filename-2", testObject.fileNameAsParameter("filename-2"));
+        assertNotNull(getClass().getClassLoader().getResource(
+                "de.apaxo.test.TestObject-fileNameAsParameter-filename-2.dat"));
+        
     }
-
 }

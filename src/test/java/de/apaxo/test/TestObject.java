@@ -9,7 +9,7 @@ package de.apaxo.test;
 public class TestObject {
 
     private String text;
-    private int countOfAnswers = 0;
+    private int    countOfAnswers = 0;
 
     /**
      * @return the text
@@ -35,20 +35,32 @@ public class TestObject {
     public String echo(String echo) {
         return echo + countOfAnswers++;
     }
-    
+
     /**
      * Returns 5.
+     * 
      * @return
      */
     public int five() {
         return 5;
     }
-    
+
     /**
      * Returns 4.
+     * 
      * @return
      */
     public int four() {
         return 4;
+    }
+
+    /**
+     * This is for testing the fileName feature.
+     * 
+     * @param fileName
+     * @return
+     */
+    public String fileNameAsParameter(String fileName) {
+        return fileName;
     }
 }
