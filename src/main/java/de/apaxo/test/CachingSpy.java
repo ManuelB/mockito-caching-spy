@@ -48,18 +48,24 @@ public class CachingSpy implements Answer<Object> {
     /**
      * Logger for our CachingSpy
      */
-    private static final Logger log = Logger.getLogger(CachingSpy.class
-            .getName());
+    private static final Logger                      log                         = Logger.getLogger(CachingSpy.class
+                                                                                         .getName());
 
     /**
      * This answer will be used by all caching spy instances.
      */
-    private static CachingSpy CACHING_SPY_ANSWERS = new CachingSpy();
+    private static CachingSpy                        CACHING_SPY_ANSWERS         = new CachingSpy();
 
     /**
      * Holds a map which functions of which object should be cached.
      */
-    private static Map<Object, Map<Method, Boolean>> shouldClassMethodBeCached = new HashMap<Object, Map<Method, Boolean>>();
+    private static Map<Object, Map<Method, Boolean>> shouldClassMethodBeCached   = new HashMap<Object, Map<Method, Boolean>>();
+
+    /**
+     * This can be used to generate custom file names in case the hashcode is
+     * not implemented in a good way.
+     */
+    private static Map<Method, FileNameConstructor>  methods2fileNameConstructor = new HashMap<Method, FileNameConstructor>();
 
     /**
      * This class can not be instantiated by anyone.
@@ -113,12 +119,26 @@ public class CachingSpy implements Answer<Object> {
         }
         @SuppressWarnings("unchecked")
         Class<T> clazz = (Class<T>) object.getClass();
+        T spiedObject = mock(clazz, withSettings().spiedInstance(object)
+                .defaultAnswer(CACHING_SPY_ANSWERS));
+        addMethodsToSpiedAndCachedMethods(methodsToCache, clazz, spiedObject);
+
+        return spiedObject;
+    }
+
+    /**
+     * This function adds the methods to the caching spy.
+     * 
+     * @param methodsToCache
+     * @param clazz
+     * @param spiedObject
+     */
+    private static <T> void addMethodsToSpiedAndCachedMethods(
+            Method[] methodsToCache, Class<T> clazz, T spiedObject) {
         // if no methods are given cache all methods
         if (methodsToCache == null) {
             methodsToCache = clazz.getMethods();
         }
-        T spiedObject = mock(clazz, withSettings().spiedInstance(object)
-                .defaultAnswer(CACHING_SPY_ANSWERS));
         // go through all methods
         for (Method method : methodsToCache) {
             // only spy public methods
@@ -136,7 +156,80 @@ public class CachingSpy implements Answer<Object> {
                 shouldMethodBeCached.put(method, true);
             }
         }
+    }
 
+    /**
+     * This function creates a decorator for an object that has a final class.
+     * 
+     * @param clazz
+     * @param object
+     * @return
+     */
+    public static <T extends K, K> K cachingSpyForFinalClass(Class<K> clazz,
+            final T object) {
+        return cachingSpyForFinalClass(clazz, object, null);
+    }
+
+    /**
+     * This function creates a decorator for an object that has a final class.
+     * 
+     * @param clazz
+     * @param object
+     * @return
+     */
+    public static <T extends K, K> K cachingSpyForFinalClass(Class<K> clazz,
+            final T object, Method[] methodsToCache) {
+        MockingDetails mockingDetails = Mockito.mockingDetails(object);
+        if (mockingDetails.isMock() || mockingDetails.isSpy()) {
+            throw new IllegalArgumentException("The object that you supplied "
+                    + object + " is already a mock."
+                    + " Please create a new one.");
+        }
+        K spiedObject = mock(clazz,
+                withSettings().defaultAnswer(new Answer<Object>() {
+
+                    @Override
+                    public Object answer(InvocationOnMock invocation)
+                            throws Throwable {
+                        // if the method should not be cached just return the
+                        // real
+                        // results
+                        if (!shouldClassMethodBeCached.containsKey(invocation
+                                .getMock())
+                                || !shouldClassMethodBeCached.get(
+                                        invocation.getMock()).containsKey(
+                                        invocation.getMethod())) {
+                            Method methodOnRealObject = object.getClass()
+                                    .getMethod(
+                                            invocation.getMethod().getName(),
+                                            invocation.getMethod()
+                                                    .getParameterTypes());
+
+                            return methodOnRealObject.invoke(object,
+                                    invocation.getArguments());
+                        }
+                        String fileName = generateFileNameForInvocation(invocation);
+                        Object returnValue = tryToFindFileAndUnserialize(fileName);
+                        if (returnValue == null) {
+                            Method methodOnRealObject = object.getClass()
+                                    .getMethod(
+                                            invocation.getMethod().getName(),
+                                            invocation.getMethod()
+                                                    .getParameterTypes());
+                            returnValue = methodOnRealObject.invoke(object,
+                                    invocation.getArguments());
+                            log.fine("Saving anwser to call to file: "
+                                    + fileName);
+                            serializeAndSaveToFile(fileName, returnValue);
+                        } else {
+                            log.fine("Reading anwser for call from file: "
+                                    + fileName);
+                        }
+                        return returnValue;
+                    }
+                }));
+
+        addMethodsToSpiedAndCachedMethods(methodsToCache, clazz, spiedObject);
         return spiedObject;
     }
 
@@ -173,11 +266,12 @@ public class CachingSpy implements Answer<Object> {
      * @param fileName
      * @param returnValue
      */
-    private void serializeAndSaveToFile(String fileName, Object returnValue) {
+    private static void serializeAndSaveToFile(String fileName,
+            Object returnValue) {
         File directory;
         try {
-            directory = new File(getClass().getClassLoader().getResource("")
-                    .toURI());
+            directory = new File(CachingSpy.class.getClassLoader()
+                    .getResource("").toURI());
             File newFile = new File(directory, fileName);
             ObjectOutputStream out = new ObjectOutputStream(
                     new BufferedOutputStream(new FileOutputStream(newFile)));
@@ -197,8 +291,8 @@ public class CachingSpy implements Answer<Object> {
      * @param fileName
      * @return
      */
-    private Object tryToFindFileAndUnserialize(String fileName) {
-        URL fileURL = getClass().getClassLoader().getResource(fileName);
+    private static Object tryToFindFileAndUnserialize(String fileName) {
+        URL fileURL = CachingSpy.class.getClassLoader().getResource(fileName);
         if (fileURL == null) {
             log.fine("Did not find file name: " + fileName);
             return null;
@@ -236,14 +330,55 @@ public class CachingSpy implements Answer<Object> {
      * @param invocation
      * @return
      */
-    private String generateFileNameForInvocation(InvocationOnMock invocation) {
+    private static String generateFileNameForInvocation(
+            InvocationOnMock invocation) {
         Method method = invocation.getMethod();
         Class<?> clazz = method.getDeclaringClass();
         String fileName = clazz.getName() + "-" + method.getName();
-        // it is forbidden to have cyclic references in an argument
-        // http://docs.oracle.com/javase/7/docs/api/java/util/Arrays.html#deepHashCode(java.lang.Object%5B%5D)
-        int hashCode = Arrays.deepHashCode(invocation.getArguments());
-        fileName = fileName + "-" + hashCode + ".dat";
+
+        if (methods2fileNameConstructor.containsKey(invocation.getMethod())) {
+            fileName += "-"+methods2fileNameConstructor.get(invocation.getMethod())
+                    .generateFileName(invocation.getArguments());
+        } else {
+            // it is forbidden to have cyclic references in an argument
+            // http://docs.oracle.com/javase/7/docs/api/java/util/Arrays.html#deepHashCode(java.lang.Object%5B%5D)
+            int hashCode = Arrays.deepHashCode(invocation.getArguments());
+            fileName += "-" + hashCode;
+        }
+
+        fileName += ".dat";
         return fileName;
+    }
+    
+    /**
+     * This can be used to define an own file name constructor for naming files
+     * in case hashCode is implemented in a bad way.
+     * 
+     * @param method
+     * @param fileNameConstructor
+     */
+    public static void addFileNameConstructor(Method method, FileNameConstructor fileNameConstructor) {
+        methods2fileNameConstructor.put(method, fileNameConstructor);
+    }
+
+    /**
+     * This can be used to remove an own file name constructor for naming files
+     * in case hashCode is implemented in a bad way.
+     * 
+     * @param method
+     */
+    public static void removeFileNameConstructor(Method method) {
+        methods2fileNameConstructor.remove(method);
+    }
+    
+    /**
+     * This can be implemented by someone who wants to change how the files are
+     * named for a certain method.
+     * 
+     * @author hu
+     * 
+     */
+    public interface FileNameConstructor {
+        public String generateFileName(Object[] arguments);
     }
 }
