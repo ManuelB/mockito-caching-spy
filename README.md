@@ -20,5 +20,14 @@ mvn install
 ```
 
 You will need git, mvn, and java.
+
+To use it from central use:
+```
+  <dependency>
+    <groupId>de.apaxo.test</groupId>
+    <artifactId>mockito-caching-spy</artifactId>
+    <version>0.3</version>
+  </dependency>
+```
  
 This code is used in the [Apaxo GmbH platform](http://www.apaxo.de)
