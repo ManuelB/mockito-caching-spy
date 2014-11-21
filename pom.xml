@@ -3,9 +3,21 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.apaxo.test</groupId>
   <artifactId>mockito-caching-spy</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.3-SNAPSHOT</version>
   <name>Mockito caching spy</name>
   <description>This project implements the possibility for a certain object to cache the return values of a function and then return when they are called again. This can be used to create unit tests from integration tests.</description>
+  <url>https://github.com/ManuelB/mockito-caching-spy/</url>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <properties>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>org.mockito</groupId>
@@ -25,7 +37,15 @@
   </organization>
   <scm>
     <url>https://source.apaxo.de/svn/semrecsys/trunk/mockito-caching-spy</url>
+    <connection>scm:svn:https://source.apaxo.de/svn/semrecsys/trunk/mockito-caching-spy</connection>
   </scm>
+  <developers>
+    <developer>
+      <id>Manuel_B</id>
+      <name>Manuel Blechschmidt</name>
+      <email>blechschmidt@apaxo.de</email>
+    </developer>
+  </developers>
   <issueManagement>
     <system>JIRA</system>
     <url>https://dev.apaxo.de:8443/</url>
@@ -52,13 +72,19 @@
       <layout>default</layout>
     </repository>
   </repositories>
-  <distributionManagement>
-    <snapshotRepository>
-      <id>apaxo-snapshots</id>
-      <url>http://dev.apaxo.de:8080/nexus/content/repositories/apaxo-snapshots</url>
-      <uniqueVersion>false</uniqueVersion>
-    </snapshotRepository>
-  </distributionManagement>
+  <!-- 
+	<distributionManagement>
+		<repository>
+			<id>apaxo-releases</id>
+			<url>http://dev.apaxo.de:8080/nexus/content/repositories/apaxo-releases</url>
+		</repository>
+		<snapshotRepository>
+			<id>apaxo-snapshots</id>
+			<url>http://dev.apaxo.de:8080/nexus/content/repositories/apaxo-snapshots</url>
+			<uniqueVersion>false</uniqueVersion>
+		</snapshotRepository>
+	</distributionManagement>
+    -->
   <build>
     <plugins>
       <plugin>
@@ -116,4 +142,33 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>release-sign-artifacts</id>
+      <activation>
+        <property>
+          <name>performRelease</name>
+          <value>true</value>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>1.1</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
